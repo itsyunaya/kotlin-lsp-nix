@@ -1,0 +1,103 @@
+name: Update kotlin-lsp
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  PACKAGE_FILE: package.nix
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Get latest upstream version
+        id: latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG=$(gh api repos/Kotlin/kotlin-lsp/releases/latest --jq '.tag_name')
+          VERSION="${TAG#kotlin-lsp/v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Get current version in repo
+        id: current
+        run: |
+          set -euo pipefail
+          CURRENT=$(grep -oP '(?<=version = ")[^"]+' "$PACKAGE_FILE" | head -n1)
+          echo "version=$CURRENT" >> "$GITHUB_OUTPUT"
+
+      - name: Compare versions
+        id: compare
+        run: |
+          if [ "${{ steps.latest.outputs.version }}" = "${{ steps.current.outputs.version }}" ]; then
+            echo "up_to_date=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "up_to_date=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prefetch hashes for all platforms
+        if: steps.compare.outputs.up_to_date == 'false'
+        run: |
+          set -euo pipefail
+          VERSION="${{ steps.latest.outputs.version }}"
+          BASE="https://download-cdn.jetbrains.com/language-server/kotlin-server/${VERSION}"
+
+          declare -A FILES=(
+            ["x86_64-linux"]="kotlin-server-${VERSION}.tar.gz"
+            ["aarch64-linux"]="kotlin-server-${VERSION}-aarch64.tar.gz"
+            ["x86_64-darwin"]="kotlin-server-${VERSION}.sit"
+            ["aarch64-darwin"]="kotlin-server-${VERSION}-aarch64.sit"
+          )
+
+          > hashes.env
+          for system in "${!FILES[@]}"; do
+            url="${BASE}/${FILES[$system]}"
+            hash=$(nix store prefetch-file --hash-type sha256 --json "$url" | jq -r '.hash')
+            var_name="${system//-/_}"
+            echo "${var_name}=${hash}" >> hashes.env
+          done
+
+      - name: Update Package File
+        if: steps.compare.outputs.up_to_date == 'false'
+        run: |
+          set -euo pipefail
+          source hashes.env
+          VERSION="${{ steps.latest.outputs.version }}"
+          OLD_VERSION="${{ steps.current.outputs.version }}"
+
+          sed -i "s|version = \"${OLD_VERSION}\"|version = \"${VERSION}\"|" "$PACKAGE_FILE"
+          sed -i "s|\"x86_64-linux\" = \"sha256-[^\"]*\"|\"x86_64-linux\" = \"${x86_64_linux}\"|" "$PACKAGE_FILE"
+          sed -i "s|\"aarch64-linux\" = \"sha256-[^\"]*\"|\"aarch64-linux\" = \"${aarch64_linux}\"|" "$PACKAGE_FILE"
+          sed -i "s|\"x86_64-darwin\" = \"sha256-[^\"]*\"|\"x86_64-darwin\" = \"${x86_64_darwin}\"|" "$PACKAGE_FILE"
+          sed -i "s|\"aarch64-darwin\" = \"sha256-[^\"]*\"|\"aarch64-darwin\" = \"${aarch64_darwin}\"|" "$PACKAGE_FILE"
+
+      - name: Test build
+        if: steps.compare.outputs.up_to_date == 'false'
+        env:
+          NIXPKGS_ALLOW_UNFREE: "1"
+        run: |
+          nix build --no-link -L --impure .#packages.x86_64-linux.kotlin-lsp
+
+      - name: Open pull request
+        if: steps.compare.outputs.up_to_date == 'false'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "kotlin-lsp: ${{ steps.current.outputs.version }} -> ${{ steps.latest.outputs.version }}"
+          title: "kotlin-lsp: ${{ steps.current.outputs.version }} -> ${{ steps.latest.outputs.version }}"
+          body: |
+            Automated update of `kotlin-lsp` to `${{ steps.latest.outputs.version }}`.
+          branch: update-kotlin-lsp-${{ steps.latest.outputs.version }}
+          delete-branch: true
+
