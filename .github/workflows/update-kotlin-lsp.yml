@@ -51,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="${{ steps.latest.outputs.version }}"
-          BASE="https://download-cdn.jetbrains.com/language-server/kotlin-server/${VERSION}"
+          BASE="https://download.jetbrains.com/language-server/kotlin-server/${VERSION}"
 
           declare -A FILES=(
             ["x86_64-linux"]="kotlin-server-${VERSION}.tar.gz"

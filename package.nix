@@ -39,7 +39,10 @@ stdenv.mkDerivation (finalAttrs: {
   strictDeps = true;
 
   src = fetchurl {
-    url = "https://download-cdn.jetbrains.com/language-server/kotlin-server/${finalAttrs.version}/${archiveFile finalAttrs.version}";
+    #url = "https://download-cdn.jetbrains.com/language-server/kotlin-server/${finalAttrs.version}/${archiveFile finalAttrs.version}";
+    url =
+    "https://download.jetbrains.com/language-server/kotlin-server/${finalAttrs.version}/${archiveFile
+    finalAttrs.version}";
     hash = archiveHash;
   };
 
@@ -118,10 +121,7 @@ stdenv.mkDerivation (finalAttrs: {
     '';
     homepage = "https://github.com/Kotlin/kotlin-lsp";
     changelog = "https://github.com/Kotlin/kotlin-lsp/releases/tag/kotlin-lsp%2Fv${finalAttrs.version}";
-    # maintainers = with lib.maintainers; [
-    #   bew
-    #   eveeifyeve
-    # ];
+    maintainers = [ lib.maintainers.itsyunaya ];
     license = with lib.licenses; [
       asl20
       # NOTE: @2026-04 the LSP source code is not public
