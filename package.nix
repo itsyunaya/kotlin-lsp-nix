@@ -24,17 +24,17 @@ let
     .${system} or (throw "kotlin-lsp does not support ${system}");
   archiveHash =
     {
-      "x86_64-linux" = "sha256-HhHS5f77+eohWtjda+lfIiKJfNCG6Mt6ZhpSCEpZBAU=";
-      "aarch64-linux" = "sha256-7HyyVKZmKgf/+fEOQ2Uiavq2xAAI+Kl0wQrF54XWUQ8=";
-      "x86_64-darwin" = "sha256-YqtzWUexyFW1BfZPXbj71/8LUqNasYl5OMbb/HskyKM=";
-      "aarch64-darwin" = "sha256-ldo/xtO5CSx2FjRQRKBe24XlQI3GSNCB5OQzWVyJK+w=";
+      "x86_64-linux" = "sha256-rgxLAeF6tzpKUienjqmebcvj5JlgAxWyJ1mk5M3dEd8=";
+      "aarch64-linux" = "sha256-RQq3wdgOSBBqpCm0jLQibYLKEqiiQARHrgI4Z5R4DKw=";
+      "x86_64-darwin" = "sha256-spw5Ol5UEVPQPWJueUYmhDfjWKZnpfkUoSbbtAB2ZLE=";
+      "aarch64-darwin" = "sha256-tAO/ilS9RY47pnMc+KuzNAvgi0OcA1dt/AKxP682lLg=";
     }
     .${system} or (throw "kotlin-lsp does not support ${system}");
 in
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "kotlin-lsp";
-  version = "263.4702.0";
+  version = "263.7084.0";
   __structuredAttrs = true;
   strictDeps = true;
 
